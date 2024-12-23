@@ -211,8 +211,7 @@ def Maze1_function():
 original_qwerty = None
 def Maze2_function():
     global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, random_time
-    global in_the_start, time_in_the_start, invisibilaty, our_frame, life, mask
-    global big_new_font, How_many, Laser_death, second_level_in_the_start
+    global in_the_start, time_in_the_start, invisibilaty, our_frame, life, mask, second_level_in_the_start
 
     # Инициализация уровня
     if not second_level_in_the_start:
@@ -222,19 +221,19 @@ def Maze2_function():
         # Загрузите изображение лабиринта только один раз
         original_qwerty = pygame.image.load("Images_mazes/maze2.png").convert()
         mask = pygame.mask.from_threshold(
-            original_qwerty, (255, 255, 255), (1, 1, 1)
+            original_qwerty, (255, 0, 0), (10, 10, 10)
         )
-        print(mask)
-        # Визуализация маски
-        draw_mask(mask, screen, (255, 0, 0))
 
-    # Проверяем, нужно ли "наказать" игрока за вход в лазер
-    if not in_the_start:
-        hero_x = 450
-        hero_y = 25
-        in_the_start = True
-        Laser_death.play()
-        life -= 1
+    # Проверка столкновения с маской
+    hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))
+    hero_mask = pygame.mask.Mask((hero_hitboxes.width, hero_hitboxes.height), True)
+    mask_offset = (hero_x, hero_y)
+
+    # Проверяем столкновение
+    if mask.overlap(hero_mask, mask_offset):
+        print("Герой столкнулся с лазером!")  # Отладочное сообщение
+        life -= 1  # Вычитаем жизнь
+        hero_x, hero_y = 450, 10  # Возвращаем героя в начальную позицию
 
     # Таймер для мигания лазеров
     its_time = pygame.time.get_ticks()
@@ -249,34 +248,12 @@ def Maze2_function():
     # Отрисовываем лазеры, если они включены
     if invisibilaty:
         pygame.draw.rect(qwerty, (255, 0, 0), (428, 100, 60, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (537, 200, 70, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (700, 12, 5, 63))
-        pygame.draw.rect(qwerty, (255, 0, 0), (928, 300, 88, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (928, 500, 88, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (928, 700, 88, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (270, 300, 120, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (142, 300, 100, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (5, 300, 110, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (5, 650, 240, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (5, 700, 240, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (300, 10, 5, 175))
-        pygame.draw.rect(qwerty, (255, 0, 0), (300, 818, 5, 86))
-        pygame.draw.rect(qwerty, (255, 0, 0), (322, 650, 70, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (423, 680, 120, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (405, 698, 5, 90))
-        pygame.draw.rect(qwerty, (255, 0, 0), (575, 925, 63, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (575, 950, 63, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (575, 975, 63, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (560, 600, 120, 5))
-        pygame.draw.rect(qwerty, (255, 0, 0), (928, 860, 5, 170))
+        # Добавьте остальные лазеры
 
     # Отрисовка уровня
     screen.fill((0, 0, 0))
     screen.blit(qwerty, (0, 0))
     screen.blit(brain_image, (10, 10))
-
-    # Хитбокс персонажа
-    hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))
     screen.blit(pers_image, hero_hitboxes.topleft)
     pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)
 
@@ -290,28 +267,17 @@ def Maze2_function():
 
     # Обработка движения персонажа
     keys = pygame.key.get_pressed()
+    hero_speed = 0.36
 
-    # Движение вниз
-    if keys[pygame.K_DOWN]:
-        if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.bottom + 1)) != buttcolor:
-            hero_y += 0.36
+    if keys[pygame.K_DOWN] and hero_y + hero_speed < height:
+        hero_y += hero_speed
+    if keys[pygame.K_UP] and hero_y - hero_speed > 0:
+        hero_y -= hero_speed
+    if keys[pygame.K_RIGHT] and hero_x + hero_speed < width:
+        hero_x += hero_speed
+    if keys[pygame.K_LEFT] and hero_x - hero_speed > 0:
+        hero_x -= hero_speed
 
-    # Движение вверх
-    if keys[pygame.K_UP]:
-        if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.top - 1)) != buttcolor:
-            hero_y -= 0.36
-
-    # Движение вправо
-    if keys[pygame.K_RIGHT]:
-        if qwerty.get_at((hero_hitboxes.right + 1, hero_hitboxes.centery)) != buttcolor:
-            hero_x += 0.36
-
-    # Движение влево
-    if keys[pygame.K_LEFT]:
-        if qwerty.get_at((hero_hitboxes.left - 1, hero_hitboxes.centery)) != buttcolor:
-            hero_x -= 0.36
-
-    # Обновляем экран
     pygame.display.flip()
 
 
