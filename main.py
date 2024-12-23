@@ -44,13 +44,32 @@ How_many = None
 WG_fish_hitboxes = None
 Fish_gonna_get_you = True
 second_level_in_the_start = False
+invisibilaty = True
+mask = None
+
 
 time_in_the_start = pygame.time.get_ticks()+sec#Эта переменная хранит в себе количество милисекунд, которые прошли с запуска программы
 I_hate_timers = pygame.time.get_ticks()
 get = pygame.time.get_ticks()
-invisibilaty = True
 
 
+def draw_mask(mask, surface, color=(255, 0, 0)):
+    """
+    Отображает маску на заданной поверхности.
+    :param mask: Маска уровня (pygame.mask.Mask)
+    :param surface: Поверхность для отрисовки (pygame.Surface)
+    :param color: Цвет маски
+    """
+    mask_surface = pygame.Surface(mask.get_size())
+    mask_surface.fill((0, 0, 0))  # Залить черным цветом
+    mask_outline = mask.outline()  # Получаем контуры маски
+
+    # Рисуем точки контура
+    for point in mask_outline:
+        mask_surface.set_at(point, color)
+
+    # Отображаем на экране
+    surface.blit(mask_surface, (0, 0))
 
 
 
@@ -192,38 +211,43 @@ def Maze1_function():
 original_qwerty = None
 def Maze2_function():
     global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, random_time
-    global in_the_start, time_in_the_start, invisibilaty, our_frame, life
+    global in_the_start, time_in_the_start, invisibilaty, our_frame, life, mask
     global big_new_font, How_many, Laser_death, second_level_in_the_start
 
-
-
+    # Инициализация уровня
     if not second_level_in_the_start:
         hero_x = 450
         hero_y = 10
         second_level_in_the_start = True
         # Загрузите изображение лабиринта только один раз
         original_qwerty = pygame.image.load("Images_mazes/maze2.png").convert()
+        mask = pygame.mask.from_threshold(
+            original_qwerty, (255, 255, 255), (1, 1, 1)
+        )
+        print(mask)
+        # Визуализация маски
+        draw_mask(mask, screen, (255, 0, 0))
 
+    # Проверяем, нужно ли "наказать" игрока за вход в лазер
     if not in_the_start:
         hero_x = 450
         hero_y = 25
         in_the_start = True
         Laser_death.play()
-        life = life-1
+        life -= 1
 
-
-
+    # Таймер для мигания лазеров
     its_time = pygame.time.get_ticks()
     if its_time - time_in_the_start >= random_time:
         random_time = random.randint(1000, 7000)
         invisibilaty = not invisibilaty
         time_in_the_start = its_time
 
-    # Создайте копию оригинального изображения для текущего кадра
+    # Создаем копию оригинального изображения для текущего кадра
     qwerty = original_qwerty.copy()
 
+    # Отрисовываем лазеры, если они включены
     if invisibilaty:
-        # Рисуйте лазеры на копии изображения
         pygame.draw.rect(qwerty, (255, 0, 0), (428, 100, 60, 5))
         pygame.draw.rect(qwerty, (255, 0, 0), (537, 200, 70, 5))
         pygame.draw.rect(qwerty, (255, 0, 0), (700, 12, 5, 63))
@@ -246,23 +270,49 @@ def Maze2_function():
         pygame.draw.rect(qwerty, (255, 0, 0), (560, 600, 120, 5))
         pygame.draw.rect(qwerty, (255, 0, 0), (928, 860, 5, 170))
 
+    # Отрисовка уровня
     screen.fill((0, 0, 0))
     screen.blit(qwerty, (0, 0))
     screen.blit(brain_image, (10, 10))
 
+    # Хитбокс персонажа
     hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))
     screen.blit(pers_image, hero_hitboxes.topleft)
     pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)
 
+    # Отображение количества жизней
     How_many = big_new_font.render(str(life), True, (255, 255, 255))
     screen.blit(How_many, (100, 100))
-
-    pygame.display.flip()
 
     # Проверка на завершение уровня
     if 577 <= hero_x <= 606 and 981 <= hero_y <= 984:
         our_frame = "maze3"
-    print(hero_x, hero_y)
+
+    # Обработка движения персонажа
+    keys = pygame.key.get_pressed()
+
+    # Движение вниз
+    if keys[pygame.K_DOWN]:
+        if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.bottom + 1)) != buttcolor:
+            hero_y += 0.36
+
+    # Движение вверх
+    if keys[pygame.K_UP]:
+        if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.top - 1)) != buttcolor:
+            hero_y -= 0.36
+
+    # Движение вправо
+    if keys[pygame.K_RIGHT]:
+        if qwerty.get_at((hero_hitboxes.right + 1, hero_hitboxes.centery)) != buttcolor:
+            hero_x += 0.36
+
+    # Движение влево
+    if keys[pygame.K_LEFT]:
+        if qwerty.get_at((hero_hitboxes.left - 1, hero_hitboxes.centery)) != buttcolor:
+            hero_x -= 0.36
+
+    # Обновляем экран
+    pygame.display.flip()
 
 
 def Maze3_function():
@@ -467,19 +517,19 @@ while running:  #while running и while running==True - это одно и то 
                     image_pygame.get_at((int(hero_hitboxes.right), int(hero_hitboxes.bottom + hero_speed))) != buttcolor):
                 hero_y += 0.36  # Увеличиваем игрек персонажа
 
-        elif keys[pygame.K_UP]:  # Если стрелка вверх нажата
+        if keys[pygame.K_UP]:  # Если стрелка вверх нажата
             if (image_pygame.get_at((int(hero_hitboxes.centerx), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.left), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.right), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor):
                 hero_y -= 0.36  # Уменьшаем игрек персонажа
 
-        elif keys[pygame.K_RIGHT]:  # Если стрелка вправо нажата
+        if keys[pygame.K_RIGHT]:  # Если стрелка вправо нажата
             if (image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.centery))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.top))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.bottom))) != buttcolor):
                 hero_x += 0.36  # Увеличиваем икс персонажа
 
-        elif keys[pygame.K_LEFT]:  # Если стрелка влево нажата
+        if keys[pygame.K_LEFT]:  # Если стрелка влево нажата
             if (image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.centery))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.top))) != buttcolor and
                     image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.bottom))) != buttcolor):
@@ -488,16 +538,6 @@ while running:  #while running и while running==True - это одно и то 
 
     elif our_frame == "maze2":
         Maze2_function()
-        if keys[pygame.K_DOWN]:#Ecли стрелка вниз нажата...
-            if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.bottom + hero_speed)) != buttcolor:  #Если следующий пиксель если идти на верх не белый...
-                hero_y += 0.36  #То мы увеличиваем игрик персонажа
-            if qwerty.get_at((hero_hitboxes.centerx, hero_hitboxes.top - hero_speed)) != buttcolor:  #Если следующий пиксель если идти вниз не белый...
-                hero_y -= 0.36  #То мы уменьшаем игрик персонажа
-        elif keys[pygame.K_RIGHT]:  #Ecли стрелка вправо нажата...
-            if qwerty.get_at((hero_hitboxes.right + hero_speed, hero_hitboxes.centery)) != buttcolor:  # Если следующий пиксель если идти вправо не белый...
-                hero_x += 0.36  #То мы увеличиваем икс персонажа
-            if qwerty.get_at((hero_hitboxes.left - hero_speed, hero_hitboxes.centery)) != buttcolor:  # Если следующий пиксель если идти влево не белый...
-                hero_x -= 0.36  #То мы уменьшаем икс персонажа
 
     elif our_frame == "maze3":
         Maze3_function()
@@ -507,20 +547,20 @@ while running:  #while running и while running==True - это одно и то 
                     bowlleg.get_at((hero_hitboxes.right, int(hero_hitboxes.bottom + hero_speed))) != Ban_on_Twich):
                 hero_y += 0.36  # Увеличиваем игрек персонажа
 
-        elif keys[pygame.K_UP]:# Если стрелка вверх нажата
+        if keys[pygame.K_UP]:# Если стрелка вверх нажата
 
             if (bowlleg.get_at((int(hero_hitboxes.centerx), int(hero_hitboxes.top - hero_speed))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.left), int(hero_hitboxes.top - hero_speed))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.right), int(hero_hitboxes.top - hero_speed))) != Ban_on_Twich):
                 hero_y -= 0.36 # Уменьшаем игрек персонажа
 
-        elif keys[pygame.K_RIGHT]:  # Если стрелка вправо нажата
+        if keys[pygame.K_RIGHT]:  # Если стрелка вправо нажата
             if (bowlleg.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.centery))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.top))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.bottom))) != Ban_on_Twich):
                 hero_x += 0.36  # Увеличиваем икс персонажа
 
-        elif keys[pygame.K_LEFT]:  # Если стрелка влево нажата
+        if keys[pygame.K_LEFT]:  # Если стрелка влево нажата
             if (bowlleg.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.centery))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.top))) != Ban_on_Twich and
                     bowlleg.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.bottom))) != Ban_on_Twich):
@@ -540,13 +580,13 @@ while running:  #while running и while running==True - это одно и то 
         if keys[pygame.K_DOWN] and hero_y<= 950:  # Если стрелка вниз нажата:
             hero_y += 0.2  # Увеличиваем игрек персонажа
 
-        elif keys[pygame.K_UP] and hero_y>=0:  # Если стрелка вверх нажата
+        if keys[pygame.K_UP] and hero_y>=0:  # Если стрелка вверх нажата
                 hero_y -= 0.2  # Уменьшаем игрек персонажа
 
-        elif keys[pygame.K_RIGHT] and hero_x<=950:# Если стрелка вправо нажата
+        if keys[pygame.K_RIGHT] and hero_x<=950:# Если стрелка вправо нажата
             hero_x += 0.2  # Увеличиваем икс персонажа
 
-        elif keys[pygame.K_LEFT] and hero_x>=0:  # Если стрелка влево нажата
+        if keys[pygame.K_LEFT] and hero_x>=0:  # Если стрелка влево нажата
             hero_x -= 0.2  # Уменьшаем икс персонажа
 
 
