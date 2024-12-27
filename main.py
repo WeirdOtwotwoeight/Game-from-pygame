@@ -46,6 +46,7 @@ Fish_gonna_get_you = True
 second_level_in_the_start = False
 invisibilaty = True
 mask = None
+wall_mask = None
 
 
 time_in_the_start = pygame.time.get_ticks()+sec#Эта переменная хранит в себе количество милисекунд, которые прошли с запуска программы
@@ -131,7 +132,7 @@ big_new_font = pygame.font.Font("Fonts/papyrus.ttf", 60)
 
 #Музыка
 pygame.mixer.music.load("Musicy/BOSS_MUSIC.mp3")
-pygame.mixer.music.set_volume(0.333)#Изменили громкость музыки в pygame
+pygame.mixer.music.set_volume(0.15)#Изменили громкость музыки в pygame
 pygame.mixer.music.play()
 
 
@@ -210,7 +211,7 @@ def Maze1_function():
 
 original_qwerty = None
 def Maze2_function():
-    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, random_time
+    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, random_time, wall_mask
     global in_the_start, time_in_the_start, invisibilaty, our_frame, life, mask, second_level_in_the_start
 
     # Инициализация уровня
@@ -222,6 +223,9 @@ def Maze2_function():
         original_qwerty = pygame.image.load("Images_mazes/maze2.png").convert()
         mask = pygame.mask.from_threshold(
             original_qwerty, (255, 0, 0), (10, 10, 10)
+        )
+        wall_mask = pygame.mask.from_threshold(
+            original_qwerty, (0, 0, 0), (10, 10, 10)
         )
 
     # Проверка столкновения с маской
