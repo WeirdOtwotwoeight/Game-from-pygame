@@ -187,12 +187,19 @@ def Menu_function():
 def Maze1_function():
     global image_pygame, hero_hitboxes, pers_image, our_frame, hero_x, hero_y, How_many, in_the_start
 
+    keys = pygame.key.get_pressed()
+    hero_speed = 0.36
+
     hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))  #Хитбоксы персонажа
+    first_hero_mask = pygame.mask.Mask((hero_hitboxes.width, hero_hitboxes.height), True)
+
 
     screen.blit(image_pygame, (0, 0))
     screen.blit(pers_image, hero_hitboxes.topleft)  #Отображает персонажа там, где его хитбокс
     screen.blit(brain_image, (10, 10))
     pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)
+
+    first_mask = pygame.mask.from_threshold(image_pygame, (255, 255, 255), (10, 10, 10))
 
     pygame.draw.rect(screen, (255, 255, 255), (350, 50, 280, 60,), 2)
 
@@ -201,6 +208,36 @@ def Maze1_function():
 
     screen.blit(Back_text, (360, 50))
     screen.blit(How_many, (59, 7))
+
+    first_wall_kaboom = (hero_x, hero_y)
+    if first_mask.overlap(first_hero_mask, first_wall_kaboom):
+        print("Ого, ого всё работает")
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_DOWN]:
+            hero_y -= 1
+        if keys[pygame.K_UP]:
+            hero_y += 1
+        if keys[pygame.K_RIGHT]:
+            hero_x -= 1
+        if keys[pygame.K_LEFT]:
+            hero_x += 1
+
+    if keys[pygame.K_DOWN]:
+        next_y = hero_y + hero_speed
+        if not first_mask.overlap_area(first_hero_mask, (hero_x, next_y)):
+            hero_y = next_y
+    if keys[pygame.K_UP]:
+        next_y = hero_y - hero_speed
+        if not first_mask.overlap_area(first_hero_mask, (hero_x, next_y)):
+            hero_y = next_y
+    if keys[pygame.K_RIGHT]:
+        next_x = hero_x + hero_speed
+        if not first_mask.overlap_area(first_hero_mask, (next_x, hero_y)):
+            hero_x = next_x
+    if keys[pygame.K_LEFT]:
+        next_x = hero_x - hero_speed
+        if not first_mask.overlap_area(first_hero_mask, (next_x, hero_y)):
+            hero_x = next_x
 
     if hero_x >= 453 and hero_x <= 477 and hero_y >= 930 and hero_y <= 972: #Проверяю, находиться ли персонаж в диапозоне финиша
         in_the_start = True
@@ -211,76 +248,63 @@ def Maze1_function():
 
 original_qwerty = None
 def Maze2_function():
-    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, random_time, wall_mask
-    global in_the_start, time_in_the_start, invisibilaty, our_frame, life, mask, second_level_in_the_start
+    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, wall_mask, second_level_in_the_start
 
     # Инициализация уровня
     if not second_level_in_the_start:
         hero_x = 450
         hero_y = 10
         second_level_in_the_start = True
-        # Загрузите изображение лабиринта только один раз
+        # Загружаем изображение карты и создаём маску для стен
         original_qwerty = pygame.image.load("Images_mazes/maze2.png").convert()
-        mask = pygame.mask.from_threshold(
-            original_qwerty, (255, 0, 0), (10, 10, 10)
-        )
-        wall_mask = pygame.mask.from_threshold(
-            original_qwerty, (0, 0, 0), (10, 10, 10)
-        )
+        wall_mask = pygame.mask.from_threshold(original_qwerty, (255, 255, 255), (10, 10, 10))  # Белые стены
 
-    # Проверка столкновения с маской
+    # Определяем хитбокс героя
     hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))
-    hero_mask = pygame.mask.Mask((hero_hitboxes.width, hero_hitboxes.height), True)
-    mask_offset = (hero_x, hero_y)
+    hero_mask = pygame.mask.Mask((hero_hitboxes.width, hero_hitboxes.height), True)#В перенную сохранили каждый пиксель уровня и определили, какие из них белые
 
-    # Проверяем столкновение
-    if mask.overlap(hero_mask, mask_offset):
-        print("Герой столкнулся с лазером!")  # Отладочное сообщение
-        life -= 1  # Вычитаем жизнь
-        hero_x, hero_y = 450, 10  # Возвращаем героя в начальную позицию
-
-    # Таймер для мигания лазеров
-    its_time = pygame.time.get_ticks()
-    if its_time - time_in_the_start >= random_time:
-        random_time = random.randint(1000, 7000)
-        invisibilaty = not invisibilaty
-        time_in_the_start = its_time
-
-    # Создаем копию оригинального изображения для текущего кадра
-    qwerty = original_qwerty.copy()
-
-    # Отрисовываем лазеры, если они включены
-    if invisibilaty:
-        pygame.draw.rect(qwerty, (255, 0, 0), (428, 100, 60, 5))
-        # Добавьте остальные лазеры
+    # Проверка столкновений с белыми стенами
+    wall_offset = (hero_x, hero_y)
+    if wall_mask.overlap(hero_mask, wall_offset):  # Если герой касается белой стены
+        print("Герой коснулся белой стены!")
+        # Отталкиваем героя обратно
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_DOWN]:
+            hero_y -= 1
+        if keys[pygame.K_UP]:
+            hero_y += 1
+        if keys[pygame.K_RIGHT]:
+            hero_x -= 1
+        if keys[pygame.K_LEFT]:
+            hero_x += 1
 
     # Отрисовка уровня
     screen.fill((0, 0, 0))
-    screen.blit(qwerty, (0, 0))
-    screen.blit(brain_image, (10, 10))
-    screen.blit(pers_image, hero_hitboxes.topleft)
-    pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)
-
-    # Отображение количества жизней
-    How_many = big_new_font.render(str(life), True, (255, 255, 255))
-    screen.blit(How_many, (100, 100))
-
-    # Проверка на завершение уровня
-    if 577 <= hero_x <= 606 and 981 <= hero_y <= 984:
-        our_frame = "maze3"
+    screen.blit(original_qwerty, (0, 0))  # Отображаем карту
+    screen.blit(pers_image, (hero_x, hero_y))  # Отображаем героя
+    pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)  # Отображаем хитбокс героя
 
     # Обработка движения персонажа
     keys = pygame.key.get_pressed()
     hero_speed = 0.36
 
-    if keys[pygame.K_DOWN] and hero_y + hero_speed < height:
-        hero_y += hero_speed
-    if keys[pygame.K_UP] and hero_y - hero_speed > 0:
-        hero_y -= hero_speed
-    if keys[pygame.K_RIGHT] and hero_x + hero_speed < width:
-        hero_x += hero_speed
-    if keys[pygame.K_LEFT] and hero_x - hero_speed > 0:
-        hero_x -= hero_speed
+    # Проверяем движение с учётом белых стен
+    if keys[pygame.K_DOWN]:
+        next_y = hero_y + hero_speed
+        if not wall_mask.overlap_area(hero_mask, (hero_x, next_y)):
+            hero_y = next_y
+    if keys[pygame.K_UP]:
+        next_y = hero_y - hero_speed
+        if not wall_mask.overlap_area(hero_mask, (hero_x, next_y)):
+            hero_y = next_y
+    if keys[pygame.K_RIGHT]:
+        next_x = hero_x + hero_speed
+        if not wall_mask.overlap_area(hero_mask, (next_x, hero_y)):
+            hero_x = next_x
+    if keys[pygame.K_LEFT]:
+        next_x = hero_x - hero_speed
+        if not wall_mask.overlap_area(hero_mask, (next_x, hero_y)):
+            hero_x = next_x
 
     pygame.display.flip()
 
@@ -481,30 +505,6 @@ while running:  #while running и while running==True - это одно и то 
 #
     elif our_frame == "maze1":
         Maze1_function()
-        if keys[pygame.K_DOWN]:  # Если стрелка вниз нажата
-            if (image_pygame.get_at((int(hero_hitboxes.centerx), int(hero_hitboxes.bottom + hero_speed))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.left), int(hero_hitboxes.bottom + hero_speed))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.right), int(hero_hitboxes.bottom + hero_speed))) != buttcolor):
-                hero_y += 0.36  # Увеличиваем игрек персонажа
-
-        if keys[pygame.K_UP]:  # Если стрелка вверх нажата
-            if (image_pygame.get_at((int(hero_hitboxes.centerx), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.left), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.right), int(hero_hitboxes.top) - int(hero_speed))) != buttcolor):
-                hero_y -= 0.36  # Уменьшаем игрек персонажа
-
-        if keys[pygame.K_RIGHT]:  # Если стрелка вправо нажата
-            if (image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.centery))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.top))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.right + hero_speed), int(hero_hitboxes.bottom))) != buttcolor):
-                hero_x += 0.36  # Увеличиваем икс персонажа
-
-        if keys[pygame.K_LEFT]:  # Если стрелка влево нажата
-            if (image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.centery))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.top))) != buttcolor and
-                    image_pygame.get_at((int(hero_hitboxes.left - hero_speed), int(hero_hitboxes.bottom))) != buttcolor):
-                hero_x -= 0.36  # Уменьшаем икс персонажа
-
 
     elif our_frame == "maze2":
         Maze2_function()
