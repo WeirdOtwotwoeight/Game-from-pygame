@@ -16,7 +16,8 @@ in_the_start=False
 in_da_start = False
 in_boss_start = False
 minus = False
-life = 3
+life = 100
+rock_hitbox = None
 rock_hitbox_two = None
 rock_hitbox_three = None
 open = 5
@@ -248,7 +249,7 @@ def Maze1_function():
 
 original_qwerty = None
 def Maze2_function():
-    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, wall_mask, second_level_in_the_start
+    global hero_x, hero_y, qwerty, original_qwerty, pers_image, hero_hitboxes, wall_mask, second_level_in_the_start, our_frame
 
     # Инициализация уровня
     if not second_level_in_the_start:
@@ -258,6 +259,7 @@ def Maze2_function():
         # Загружаем изображение карты и создаём маску для стен
         original_qwerty = pygame.image.load("Images_mazes/maze2.png").convert()
         wall_mask = pygame.mask.from_threshold(original_qwerty, (255, 255, 255), (10, 10, 10))  # Белые стены
+
 
     # Определяем хитбокс героя
     hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))
@@ -308,73 +310,73 @@ def Maze2_function():
 
     pygame.display.flip()
 
-
-def Maze3_function():
-    global in_da_start, bowlleg, hero_x, hero_y, hero_hitboxes, hero_speed, big_new_font, How_many
-    if not in_da_start:
-        hero_x = 450
-        hero_y = 25
-        in_da_start = True
-
-    screen.blit(bowlleg, (0,0))
+    if hero_x >= 577 and hero_x <= 607 and hero_y >= 902 and hero_y <= 968:
+        our_frame = "maze3"
 
 
-    hero_hitboxes = pers_image.get_rect(topleft=(hero_x, hero_y))  # Хитбоксы персонажа
-    How_many = big_new_font.render(str(life), True, (0, 0, 0))
-    screen.blit(brain_image, (10, 10))
-    screen.blit(How_many, (60, 10))
-
-
-    screen.blit(pers_image, hero_hitboxes.topleft)  # Отображает персонажа там, где его хитбокс
-    pygame.draw.rect(screen, (255, 0, 0), hero_hitboxes, 2)
-
-
-    if hero_x>=552 and hero_x<=572 and hero_y>=952 and hero_y<=972:
-        if open == 3:
-            print(",hj cltkfk rheujcdtnre ")
-
-    hero_speed = 0.5
-
-
-
-
-    #print(hero_x, hero_y)
-
-
-
-
-
-    Meteorites()
-    Keys()
-
-
-
+hit_detected = False  # Глобальная переменная для отслеживания столкновения
 
 def Meteorites():
-    global meteorite_y, meteorite_witch, meteorite_x, meteorite_x_x, life, meteorite_three_x, meteorite_four_x, rock_hitbox, rock_hitbox_two, rock_hitbox_three
+    global meteorite_y, meteorite_x, meteorite_x_x, meteorite_three_x
+    global rock_hitbox, rock_hitbox_two, rock_hitbox_three
 
+    if rock:  # Убедимся, что изображение загружено
+        if isinstance(meteorite_x, (int, float)) and isinstance(meteorite_y, (int, float)):
+            rock_hitbox = rock.get_rect(topleft=(meteorite_x, meteorite_y))
+            rock_hitbox_two = rock.get_rect(topleft=(meteorite_x_x, meteorite_y))
+            rock_hitbox_three = rock.get_rect(topleft=(meteorite_three_x, meteorite_y))
+        else:
+            print("Ошибка: некорректные координаты для метеоритов")
 
-    rock_hitbox = rock.get_rect(topleft = (meteorite_x, meteorite_y))
-    rock_hitbox_two = rock.get_rect(topleft = (meteorite_x_x, meteorite_y))
-    rock_hitbox_three = rock.get_rect(topleft = (meteorite_three_x, meteorite_y))
-    pygame.draw.rect(screen, (255, 0, 0), rock_hitbox, 2)
-    pygame.draw.rect(screen, (0, 0, 255), rock_hitbox_two, 2)
-    pygame.draw.rect(screen, (123, 123, 123), rock_hitbox_three, 2)
-    screen.blit(rock, (meteorite_x, meteorite_y))
-    screen.blit(rock, (meteorite_x_x, meteorite_y))
-    screen.blit(rock, (meteorite_three_x, meteorite_y))
-    screen.blit(rock, (meteorite_four_x, meteorite_y))
+        # Отрисовка метеоритов
+        screen.blit(rock, (meteorite_x, meteorite_y))
+        screen.blit(rock, (meteorite_x_x, meteorite_y))
+        screen.blit(rock, (meteorite_three_x, meteorite_y))
 
-
-
-    if meteorite_y<1024:
-        meteorite_y+=0.5
+        # Движение метеоритов
+        if meteorite_y < 1024:
+            meteorite_y += 0.5
+        else:
+            meteorite_y = 0
+            meteorite_x = random.randint(0, 924)
+            meteorite_x_x = random.randint(0, 924)
+            meteorite_three_x = random.randint(0, 924)
     else:
-        meteorite_y = 0
-        meteorite_x = random.randint(0, 924)
-        meteorite_x_x = random.randint(0, 924)
-        meteorite_three_x = random.randint(0,924)
-        meteorite_four_x = random.randint(0, 924)
+        print("Ошибка: изображение метеорита не загружено")
+
+
+hit_detected = False  # Глобальная переменная для отслеживания столкновения
+
+def Maze3_function():
+    global hit_detected, life, our_frame, hero_x, hero_y, in_the_start, in_da_start
+
+    # Проверка столкновения с метеоритами
+    if (rock_hitbox and rock_hitbox_two and rock_hitbox_three and
+            (hero_hitboxes.colliderect(rock_hitbox) or
+             hero_hitboxes.colliderect(rock_hitbox_two) or
+             hero_hitboxes.colliderect(rock_hitbox_three))):
+        if not hit_detected:  # Проверяем, не было ли уже столкновения
+            life -= 1
+            print(f"Осталось жизней: {life}")
+            hit_detected = True  # Устанавливаем флаг столкновения
+            if life == 0:  # Если жизней не осталось
+                screen.fill((0, 0, 0))
+                game_over_text = big_new_font.render("Game Over", True, (255, 0, 0))
+                screen.blit(game_over_text, (400, 500))
+                pygame.display.flip()
+                pygame.time.wait(2000)  # Ожидание 2 секунды
+                our_frame = "maze1"
+                hero_x = 450
+                hero_y = 10
+                in_the_start = False
+                in_da_start = False
+                life = 3  # Сбрасываем жизни
+            else:
+                pygame.time.wait(1000)  # Задержка перед продолжением
+    else:
+        hit_detected = False  # Сбрасываем флаг, если больше нет столкновения
+
+
 
 
 def Keys():
@@ -492,8 +494,6 @@ while running:  #while running и while running==True - это одно и то 
             running = False  #...то тогда переменная running меняется на False и игровой цикл прекращается
 
         if event.type == pygame.MOUSEBUTTONDOWN:  #Если событие - нажатие на экран...
-            if event.button==1:
-                life-=1
             if our_frame == "menu" and Start_button.collidepoint(event.pos):
                 our_frame = "maze1"
     keys = pygame.key.get_pressed()
@@ -537,13 +537,17 @@ while running:  #while running и while running==True - это одно и то 
                 hero_x -= 0.36  # Уменьшаем икс персонажа
         if hero_hitboxes.colliderect(rock_hitbox) or hero_hitboxes.colliderect(rock_hitbox_two) or hero_hitboxes.colliderect(rock_hitbox_three):#Проверяем, столкновение-колизию двух прямоугольников
             life-=1
-            minus = True
-            if minus:
-                our_frame="maze1"
-                hero_x=450
-                hero_y=10
-                in_the_start = False
-                in_da_start = False
+            if life == 0:
+                pygame.time.wait(1000)
+                minus = True
+        if minus:
+            our_frame="maze1"
+            hero_x=450
+            hero_y=10
+            in_the_start = False
+            in_da_start = False
+            minus = False
+            life = 3
     elif our_frame == "BOSS":
         BOSS()
         get = pygame.time.get_ticks()
